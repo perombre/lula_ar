@@ -22,12 +22,13 @@
   .hint { text-align:center; font-size:12px; opacity:.6; margin-top:6px; }
   .bar { position:absolute; left:0; right:0; top:0; height:3px; }
   .bar div { height:100%; width:0; background:var(--accent); transition:width .2s; }
-  /* botão Dançar/Parar: aparece na página e continua dentro do AR */
-  .toggle { position:absolute; left:50%; transform:translateX(-50%); bottom:16px;
-    border:0; border-radius:999px; padding:14px 28px; font-size:18px; font-weight:600;
-    background:rgba(255,255,255,.95); color:var(--fg); box-shadow:0 4px 16px rgba(0,0,0,.2); }
-  model-viewer[ar-status="session-started"] .toggle,
-  model-viewer[ar-status="object-placed"] .toggle { bottom:calc(32px + env(safe-area-inset-bottom)); }
+  /* botões Dançar e Acenar: aparecem na página e continuam dentro do AR */
+  .moves { position:absolute; left:50%; transform:translateX(-50%); bottom:16px; display:flex; gap:10px; }
+  .moves button { border:0; border-radius:999px; padding:14px 20px; font-size:17px; font-weight:600; white-space:nowrap;
+    background:rgba(255,255,255,.95); color:var(--fg); box-shadow:0 4px 16px rgba(0,0,0,.2); min-width:128px; }
+  .moves button.on { background:var(--accent); color:#fff; }
+  model-viewer[ar-status="session-started"] .moves,
+  model-viewer[ar-status="object-placed"] .moves { bottom:calc(32px + env(safe-area-inset-bottom)); }
   /* dentro do AR: sair, esconder botões (para gravar a tela) e área invisível para mostrar de novo */
   .round { position:absolute; top:calc(16px + env(safe-area-inset-top)); width:48px; height:48px; border:0;
     border-radius:50%; background:rgba(255,255,255,.9); color:var(--fg); font-size:22px;
@@ -37,7 +38,7 @@
   model-viewer[ar-status="session-started"] .hide,
   model-viewer[ar-status="object-placed"] .hide { display:block; }
   .restore { position:absolute; top:0; right:0; width:96px; height:96px; display:none; }
-  model-viewer.clean .toggle, model-viewer.clean .round { display:none !important; }
+  model-viewer.clean .moves, model-viewer.clean .round { display:none !important; }
   model-viewer.clean .restore { display:block; }
   .cam-btn { display:block; width:100%; margin-top:10px; border:1px solid #c9d2e3; border-radius:14px;
     padding:14px; font-size:16px; font-weight:600; background:#fff; color:var(--fg); text-align:center;
@@ -62,7 +63,10 @@
   interaction-prompt="auto">
   <div class="bar" slot="progress-bar"><div id="bar"></div></div>
   <button slot="ar-button" style="display:none"></button>
-  <button class="toggle" id="toggle">💃 Dançar</button>
+  <div class="moves" id="moves">
+    <button data-anim="Lula_Danca" data-label="💃 Dançar">💃 Dançar</button>
+    <button data-anim="Lula_Aceno" data-label="👋 Acenar">👋 Acenar</button>
+  </div>
   <button class="round exit" slot="exit-webxr-ar-button" aria-label="Sair do AR">✕</button>
   <button class="round hide" id="hideBtn" aria-label="Esconder botões">🙈</button>
   <div class="restore" id="restore"></div>
@@ -76,18 +80,23 @@
 
 <script>
   const mv = document.getElementById('mv');
-  const toggle = document.getElementById('toggle');
+  const moves = document.getElementById('moves');
+  const moveBtns = moves.querySelectorAll('button');
   const arBtn = document.getElementById('arBtn');
   const hint = document.getElementById('hint');
 
-  // parado (idle) <-> dançando
-  toggle.addEventListener('click', e => {
+  // cada botão liga o seu movimento; tocar de novo ("Parar") volta ao idle
+  moveBtns.forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
-    const dancing = mv.animationName === 'Lula_Danca';
-    mv.animationName = dancing ? 'Lula_Idle' : 'Lula_Danca';
+    const next = mv.animationName === b.dataset.anim ? 'Lula_Idle' : b.dataset.anim;
+    mv.animationName = next;
     mv.play();
-    toggle.textContent = dancing ? '💃 Dançar' : 'Parar';
-  });
+    moveBtns.forEach(o => {
+      const active = o.dataset.anim === next;
+      o.classList.toggle('on', active);
+      o.textContent = active ? 'Parar' : o.dataset.label;
+    });
+  }));
   // esconder os botões para gravar a tela; tocar no canto superior direito mostra de novo
   const hideBtn = document.getElementById('hideBtn');
   const restore = document.getElementById('restore');
@@ -96,7 +105,7 @@
   mv.addEventListener('ar-status', e => { if (e.detail.status === 'not-presenting') mv.classList.remove('clean'); });
 
   // no AR, tocar nos botões não deve reposicionar o Lula
-  [toggle, hideBtn, restore].forEach(el => el.addEventListener('beforexrselect', e => e.preventDefault()));
+  [moves, hideBtn, restore].forEach(el => el.addEventListener('beforexrselect', e => e.preventDefault()));
 
   mv.addEventListener('progress', e => {
     document.getElementById('bar').style.width = (e.detail.totalProgress * 100) + '%';

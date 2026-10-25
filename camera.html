@@ -20,9 +20,11 @@
     font-size:20px; display:flex; align-items:center; justify-content:center; text-decoration:none; }
   .timer { padding:6px 12px; border-radius:999px; background:var(--rec); font-weight:600; font-size:15px; display:none; }
   .bottom { position:fixed; left:0; right:0; bottom:calc(20px + env(safe-area-inset-bottom));
-    display:flex; align-items:center; justify-content:center; gap:22px; }
+    display:flex; align-items:center; justify-content:center; gap:14px; }
   .pill { border:0; border-radius:999px; padding:12px 18px; font-size:16px; font-weight:600;
     background:rgba(255,255,255,.92); color:var(--fg); min-width:110px; }
+  .pill.move { min-width:118px; }
+  .pill.move.on { background:var(--accent); color:#fff; }
   .rec { width:76px; height:76px; border-radius:50%; border:5px solid #fff; background:transparent; padding:0; }
   .rec span { display:block; margin:auto; width:56px; height:56px; border-radius:50%; background:var(--rec); transition:all .2s; }
   .rec.on span { width:28px; height:28px; border-radius:6px; }
@@ -59,9 +61,9 @@
 <div class="hint" id="hint">Arraste para mover · pinça para aumentar · dois dedos para girar</div>
 
 <div class="bottom">
-  <button class="pill" id="dance">💃 Dançar</button>
+  <button class="pill move" data-anim="Lula_Danca" data-label="💃 Dançar">💃 Dançar</button>
   <button class="rec" id="rec" aria-label="Gravar"><span></span></button>
-  <div style="min-width:110px"></div>
+  <button class="pill move" data-anim="Lula_Aceno" data-label="👋 Acenar">👋 Acenar</button>
 </div>
 
 <div class="msg" id="msg">Carregando o Lula…</div>
@@ -127,11 +129,16 @@ function setAnim(name) {
   next.reset().play(); prev.crossFadeTo(next, 0.4, false);
   current = name;
 }
-$('dance').onclick = () => {
-  const dancing = current === 'Lula_Danca';
-  setAnim(dancing ? 'Lula_Idle' : 'Lula_Danca');
-  $('dance').textContent = dancing ? '💃 Dançar' : 'Parar';
-};
+// cada botão liga o seu movimento; tocar de novo ("Parar") volta ao idle
+const moveBtns = document.querySelectorAll('.move');
+moveBtns.forEach(b => b.onclick = () => {
+  setAnim(current === b.dataset.anim ? 'Lula_Idle' : b.dataset.anim);
+  moveBtns.forEach(o => {
+    const active = o.dataset.anim === current;
+    o.classList.toggle('on', active);
+    o.textContent = active ? 'Parar' : o.dataset.label;
+  });
+});
 
 // ---------- câmera do celular ----------
 let facing = 'environment', stream;
