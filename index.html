@@ -6,7 +6,7 @@
 <title>Lula em AR</title>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <style>
-  :root { --bg:#eef1f5; --fg:#14213d; --accent:#1f4fbf; --chip:#ffffff; }
+  :root { --bg:#eef1f5; --fg:#14213d; --accent:#1f4fbf; }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -15,10 +15,6 @@
   header h1 { margin:0; font-size:20px; }
   header p { margin:4px 0 0; font-size:13px; opacity:.7; }
   model-viewer { flex:1; width:100%; min-height:60vh; background:transparent; --poster-color:transparent; }
-  .chips { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; padding:8px 16px; }
-  .chips button { border:1px solid #c9d2e3; background:var(--chip); color:var(--fg); border-radius:999px;
-    padding:10px 16px; font-size:15px; }
-  .chips button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
   .ar { margin:6px 16px calc(16px + env(safe-area-inset-bottom)); }
   .ar-btn { width:100%; border:0; border-radius:14px; padding:16px; font-size:17px; font-weight:600;
     background:var(--accent); color:#fff; }
@@ -26,18 +22,18 @@
   .hint { text-align:center; font-size:12px; opacity:.6; margin-top:6px; }
   .bar { position:absolute; left:0; right:0; top:0; height:3px; }
   .bar div { height:100%; width:0; background:var(--accent); transition:width .2s; }
-  /* botão que só aparece dentro do AR */
-  .ar-toggle { display:none; position:absolute; left:50%; transform:translateX(-50%);
-    bottom:calc(28px + env(safe-area-inset-bottom)); border:0; border-radius:999px;
-    padding:16px 28px; font-size:18px; font-weight:600; background:rgba(255,255,255,.92); color:var(--fg);
-    box-shadow:0 4px 16px rgba(0,0,0,.25); }
-  model-viewer[ar-status="session-started"] .ar-toggle { display:block; }
+  /* botão Dançar/Parar: aparece na página e continua dentro do AR */
+  .toggle { position:absolute; left:50%; transform:translateX(-50%); bottom:16px;
+    border:0; border-radius:999px; padding:14px 28px; font-size:18px; font-weight:600;
+    background:rgba(255,255,255,.95); color:var(--fg); box-shadow:0 4px 16px rgba(0,0,0,.2); }
+  model-viewer[ar-status="session-started"] .toggle,
+  model-viewer[ar-status="object-placed"] .toggle { bottom:calc(32px + env(safe-area-inset-bottom)); }
 </style>
 </head>
 <body>
 <header>
   <h1>Lula em AR</h1>
-  <p>Gire com o dedo, aproxime com pinça e escolha o movimento</p>
+  <p>Gire com o dedo e aproxime com pinça</p>
 </header>
 
 <model-viewer id="mv"
@@ -48,18 +44,12 @@
   autoplay animation-name="Lula_Idle" animation-crossfade-duration="400"
   ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" ar-placement="floor"
   shadow-intensity="1" shadow-softness="0.8" exposure="1.05"
-  camera-orbit="20deg 80deg 4.2m" camera-target="0m 0.85m 0m" min-camera-orbit="auto auto 1.2m" max-camera-orbit="auto auto 6m"
+  camera-orbit="15deg 80deg 5.4m" camera-target="0.15m 0.85m 0m" min-camera-orbit="auto auto 1.2m" max-camera-orbit="auto auto 8m"
   interaction-prompt="auto">
   <div class="bar" slot="progress-bar"><div id="bar"></div></div>
   <button slot="ar-button" style="display:none"></button>
-  <button class="ar-toggle" id="arToggle">👋 Acenar</button>
+  <button class="toggle" id="toggle">💃 Dançar</button>
 </model-viewer>
-
-<div class="chips" id="chips">
-  <button data-anim="Lula_Idle" class="on">Parado</button>
-  <button data-anim="Lula_Danca">Dança</button>
-  <button data-anim="Lula_Aceno">Aceno</button>
-</div>
 
 <div class="ar">
   <button class="ar-btn" id="arBtn">Ver na minha sala (AR)</button>
@@ -68,26 +58,20 @@
 
 <script>
   const mv = document.getElementById('mv');
-  const chips = document.querySelectorAll('#chips button');
+  const toggle = document.getElementById('toggle');
   const arBtn = document.getElementById('arBtn');
   const hint = document.getElementById('hint');
 
-  const arToggle = document.getElementById('arToggle');
-
-  function setAnim(name) {
-    mv.animationName = name;
-    mv.play();
-    chips.forEach(c => c.classList.toggle('on', c.dataset.anim === name));
-    arToggle.textContent = name === 'Lula_Aceno' ? 'Parar' : '👋 Acenar';
-  }
-
-  chips.forEach(b => b.addEventListener('click', () => setAnim(b.dataset.anim)));
-
-  // dentro do AR: alterna entre parado e acenando
-  arToggle.addEventListener('click', e => {
+  // parado (idle) <-> dançando
+  toggle.addEventListener('click', e => {
     e.stopPropagation();
-    setAnim(mv.animationName === 'Lula_Aceno' ? 'Lula_Idle' : 'Lula_Aceno');
+    const dancing = mv.animationName === 'Lula_Danca';
+    mv.animationName = dancing ? 'Lula_Idle' : 'Lula_Danca';
+    mv.play();
+    toggle.textContent = dancing ? '💃 Dançar' : 'Parar';
   });
+  // no AR, tocar no botão não deve reposicionar o Lula
+  toggle.addEventListener('beforexrselect', e => e.preventDefault());
 
   mv.addEventListener('progress', e => {
     document.getElementById('bar').style.width = (e.detail.totalProgress * 100) + '%';
