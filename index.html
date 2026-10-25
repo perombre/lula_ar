@@ -26,6 +26,12 @@
   .hint { text-align:center; font-size:12px; opacity:.6; margin-top:6px; }
   .bar { position:absolute; left:0; right:0; top:0; height:3px; }
   .bar div { height:100%; width:0; background:var(--accent); transition:width .2s; }
+  /* botão que só aparece dentro do AR */
+  .ar-toggle { display:none; position:absolute; left:50%; transform:translateX(-50%);
+    bottom:calc(28px + env(safe-area-inset-bottom)); border:0; border-radius:999px;
+    padding:16px 28px; font-size:18px; font-weight:600; background:rgba(255,255,255,.92); color:var(--fg);
+    box-shadow:0 4px 16px rgba(0,0,0,.25); }
+  model-viewer[ar-status="session-started"] .ar-toggle { display:block; }
 </style>
 </head>
 <body>
@@ -39,13 +45,14 @@
   ios-src="lula_danca.usdz"
   alt="Personagem 3D do Lula"
   camera-controls touch-action="pan-y"
-  autoplay animation-name="Lula_Idle"
+  autoplay animation-name="Lula_Idle" animation-crossfade-duration="400"
   ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" ar-placement="floor"
   shadow-intensity="1" shadow-softness="0.8" exposure="1.05"
   camera-orbit="20deg 80deg 4.2m" camera-target="0m 0.85m 0m" min-camera-orbit="auto auto 1.2m" max-camera-orbit="auto auto 6m"
   interaction-prompt="auto">
   <div class="bar" slot="progress-bar"><div id="bar"></div></div>
   <button slot="ar-button" style="display:none"></button>
+  <button class="ar-toggle" id="arToggle">👋 Acenar</button>
 </model-viewer>
 
 <div class="chips" id="chips">
@@ -65,13 +72,22 @@
   const arBtn = document.getElementById('arBtn');
   const hint = document.getElementById('hint');
 
-  chips.forEach(b => b.addEventListener('click', () => {
-    chips.forEach(c => c.classList.remove('on'));
-    b.classList.add('on');
-    mv.animationName = b.dataset.anim;
-    mv.currentTime = 0;
+  const arToggle = document.getElementById('arToggle');
+
+  function setAnim(name) {
+    mv.animationName = name;
     mv.play();
-  }));
+    chips.forEach(c => c.classList.toggle('on', c.dataset.anim === name));
+    arToggle.textContent = name === 'Lula_Aceno' ? 'Parar' : '👋 Acenar';
+  }
+
+  chips.forEach(b => b.addEventListener('click', () => setAnim(b.dataset.anim)));
+
+  // dentro do AR: alterna entre parado e acenando
+  arToggle.addEventListener('click', e => {
+    e.stopPropagation();
+    setAnim(mv.animationName === 'Lula_Aceno' ? 'Lula_Idle' : 'Lula_Aceno');
+  });
 
   mv.addEventListener('progress', e => {
     document.getElementById('bar').style.width = (e.detail.totalProgress * 100) + '%';
