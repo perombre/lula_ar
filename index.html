@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lula em AR</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  :root { --bg:#eef1f5; --fg:#14213d; --accent:#1f4fbf; --chip:#ffffff; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display:flex; flex-direction:column; }
+  header { padding:14px 16px 4px; text-align:center; }
+  header h1 { margin:0; font-size:20px; }
+  header p { margin:4px 0 0; font-size:13px; opacity:.7; }
+  model-viewer { flex:1; width:100%; min-height:60vh; background:transparent; --poster-color:transparent; }
+  .chips { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; padding:8px 16px; }
+  .chips button { border:1px solid #c9d2e3; background:var(--chip); color:var(--fg); border-radius:999px;
+    padding:10px 16px; font-size:15px; }
+  .chips button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .ar { margin:6px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .ar-btn { width:100%; border:0; border-radius:14px; padding:16px; font-size:17px; font-weight:600;
+    background:var(--accent); color:#fff; }
+  .ar-btn[disabled] { opacity:.5; }
+  .hint { text-align:center; font-size:12px; opacity:.6; margin-top:6px; }
+  .bar { position:absolute; left:0; right:0; top:0; height:3px; }
+  .bar div { height:100%; width:0; background:var(--accent); transition:width .2s; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lula em AR</h1>
+  <p>Gire com o dedo, aproxime com pinça e escolha o movimento</p>
+</header>
+
+<model-viewer id="mv"
+  src="lula.glb"
+  ios-src="lula_danca.usdz"
+  alt="Personagem 3D do Lula"
+  camera-controls touch-action="pan-y"
+  autoplay animation-name="Lula_Idle"
+  ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto" ar-placement="floor"
+  shadow-intensity="1" shadow-softness="0.8" exposure="1.05"
+  camera-orbit="20deg 80deg 4.2m" camera-target="0m 0.85m 0m" min-camera-orbit="auto auto 1.2m" max-camera-orbit="auto auto 6m"
+  interaction-prompt="auto">
+  <div class="bar" slot="progress-bar"><div id="bar"></div></div>
+  <button slot="ar-button" style="display:none"></button>
+</model-viewer>
+
+<div class="chips" id="chips">
+  <button data-anim="Lula_Idle" class="on">Parado</button>
+  <button data-anim="Lula_Danca">Dança</button>
+  <button data-anim="Lula_Aceno">Aceno</button>
+</div>
+
+<div class="ar">
+  <button class="ar-btn" id="arBtn">Ver na minha sala (AR)</button>
+  <div class="hint" id="hint">Abra no celular para ver em realidade aumentada</div>
+</div>
+
+<script>
+  const mv = document.getElementById('mv');
+  const chips = document.querySelectorAll('#chips button');
+  const arBtn = document.getElementById('arBtn');
+  const hint = document.getElementById('hint');
+
+  chips.forEach(b => b.addEventListener('click', () => {
+    chips.forEach(c => c.classList.remove('on'));
+    b.classList.add('on');
+    mv.animationName = b.dataset.anim;
+    mv.currentTime = 0;
+    mv.play();
+  }));
+
+  mv.addEventListener('progress', e => {
+    document.getElementById('bar').style.width = (e.detail.totalProgress * 100) + '%';
+    if (e.detail.totalProgress === 1) document.querySelector('.bar').style.display = 'none';
+  });
+
+  mv.addEventListener('load', () => {
+    if (mv.canActivateAR) {
+      hint.textContent = 'Aponte a câmera para o chão e toque para posicionar';
+    } else {
+      arBtn.disabled = true;
+      hint.textContent = 'AR disponível no celular (Chrome no Android, Safari no iPhone)';
+    }
+  });
+
+  arBtn.addEventListener('click', () => { if (mv.canActivateAR) mv.activateAR(); });
+</script>
+</body>
+</html>
