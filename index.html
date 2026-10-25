@@ -28,6 +28,20 @@
     background:rgba(255,255,255,.95); color:var(--fg); box-shadow:0 4px 16px rgba(0,0,0,.2); }
   model-viewer[ar-status="session-started"] .toggle,
   model-viewer[ar-status="object-placed"] .toggle { bottom:calc(32px + env(safe-area-inset-bottom)); }
+  /* dentro do AR: sair, esconder botões (para gravar a tela) e área invisível para mostrar de novo */
+  .round { position:absolute; top:calc(16px + env(safe-area-inset-top)); width:48px; height:48px; border:0;
+    border-radius:50%; background:rgba(255,255,255,.9); color:var(--fg); font-size:22px;
+    box-shadow:0 2px 10px rgba(0,0,0,.2); }
+  .exit { left:16px; }
+  .hide { right:16px; display:none; }
+  model-viewer[ar-status="session-started"] .hide,
+  model-viewer[ar-status="object-placed"] .hide { display:block; }
+  .restore { position:absolute; top:0; right:0; width:96px; height:96px; display:none; }
+  model-viewer.clean .toggle, model-viewer.clean .round { display:none !important; }
+  model-viewer.clean .restore { display:block; }
+  .cam-btn { display:block; width:100%; margin-top:10px; border:1px solid #c9d2e3; border-radius:14px;
+    padding:14px; font-size:16px; font-weight:600; background:#fff; color:var(--fg); text-align:center;
+    text-decoration:none; }
 </style>
 </head>
 <body>
@@ -49,11 +63,15 @@
   <div class="bar" slot="progress-bar"><div id="bar"></div></div>
   <button slot="ar-button" style="display:none"></button>
   <button class="toggle" id="toggle">💃 Dançar</button>
+  <button class="round exit" slot="exit-webxr-ar-button" aria-label="Sair do AR">✕</button>
+  <button class="round hide" id="hideBtn" aria-label="Esconder botões">🙈</button>
+  <div class="restore" id="restore"></div>
 </model-viewer>
 
 <div class="ar">
   <button class="ar-btn" id="arBtn">Ver na minha sala (AR)</button>
   <div class="hint" id="hint">Abra no celular para ver em realidade aumentada</div>
+  <a class="cam-btn" href="camera.html">📸 Gravar vídeo com o Lula</a>
 </div>
 
 <script>
@@ -70,8 +88,15 @@
     mv.play();
     toggle.textContent = dancing ? '💃 Dançar' : 'Parar';
   });
-  // no AR, tocar no botão não deve reposicionar o Lula
-  toggle.addEventListener('beforexrselect', e => e.preventDefault());
+  // esconder os botões para gravar a tela; tocar no canto superior direito mostra de novo
+  const hideBtn = document.getElementById('hideBtn');
+  const restore = document.getElementById('restore');
+  hideBtn.addEventListener('click', e => { e.stopPropagation(); mv.classList.add('clean'); });
+  restore.addEventListener('click', e => { e.stopPropagation(); mv.classList.remove('clean'); });
+  mv.addEventListener('ar-status', e => { if (e.detail.status === 'not-presenting') mv.classList.remove('clean'); });
+
+  // no AR, tocar nos botões não deve reposicionar o Lula
+  [toggle, hideBtn, restore].forEach(el => el.addEventListener('beforexrselect', e => e.preventDefault()));
 
   mv.addEventListener('progress', e => {
     document.getElementById('bar').style.width = (e.detail.totalProgress * 100) + '%';
